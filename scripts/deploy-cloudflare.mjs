@@ -1,0 +1,10 @@
+import { readFile } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+const config=JSON.parse(await readFile(new URL('../dist/server/wrangler.json',import.meta.url),'utf8'));
+const entry=await readFile(new URL('../dist/server/index.js',import.meta.url),'utf8');
+if(!config.durable_objects?.bindings?.some(b=>b.name==='ROOMS'&&b.class_name==='GameRoom')||!entry.includes('GameRoom'))throw new Error('Build the survival Worker first with pnpm build.');
+if(config.d1_databases?.length)throw new Error('Unexpected D1 bindings. Review the build before deploying.');
+console.log('Deploying '+config.name+' to your authenticated Cloudflare account. No gameplay tests are run.');
+const result=spawnSync(process.execPath,['--import','./scripts/sites-env.mjs','./node_modules/wrangler/bin/wrangler.js','deploy','--config','dist/server/wrangler.json'],{stdio:'inherit'});
+if(result.error)throw result.error;
+process.exit(result.status??1);
